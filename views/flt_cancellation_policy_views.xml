@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_flt_cancellation_policy_list" model="ir.ui.view">
+        <field name="name">flt.cancellation.policy.list</field>
+        <field name="model">flt.cancellation.policy</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="airline_id"/>
+                <field name="ticket_class"/>
+                <field name="min_hours_before_departure"/>
+                <field name="max_hours_before_departure"/>
+                <field name="charge_type"/>
+                <field name="charge_percentage"/>
+                <field name="charge_fixed_amount"/>
+                <field name="auto_cancel_booking"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_flt_cancellation_policy_form" model="ir.ui.view">
+        <field name="name">flt.cancellation.policy.form</field>
+        <field name="model">flt.cancellation.policy</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="airline_id"/>
+                            <field name="ticket_class"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="min_hours_before_departure"/>
+                            <field name="max_hours_before_departure"/>
+                            <field name="charge_type"/>
+                            <field name="charge_percentage" invisible="charge_type != 'percentage'"/>
+                            <field name="charge_fixed_amount" invisible="charge_type != 'fixed'"/>
+                            <field name="auto_cancel_booking"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_flt_cancellation_policy" model="ir.actions.act_window">
+        <field name="name">Cancellation Policies</field>
+        <field name="res_model">flt.cancellation.policy</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

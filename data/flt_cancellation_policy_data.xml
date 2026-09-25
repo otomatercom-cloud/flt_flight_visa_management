@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="policy_default_0_24h" model="flt.cancellation.policy">
+        <field name="name">Default: 0-24 hours before departure</field>
+        <field name="sequence">10</field>
+        <field name="min_hours_before_departure">0</field>
+        <field name="max_hours_before_departure">24</field>
+        <field name="charge_type">percentage</field>
+        <field name="charge_percentage">100</field>
+    </record>
+
+    <record id="policy_default_24_72h" model="flt.cancellation.policy">
+        <field name="name">Default: 24-72 hours before departure</field>
+        <field name="sequence">20</field>
+        <field name="min_hours_before_departure">24</field>
+        <field name="max_hours_before_departure">72</field>
+        <field name="charge_type">percentage</field>
+        <field name="charge_percentage">50</field>
+    </record>
+
+    <record id="policy_default_72h_plus" model="flt.cancellation.policy">
+        <field name="name">Default: More than 72 hours before departure</field>
+        <field name="sequence">30</field>
+        <field name="min_hours_before_departure">72</field>
+        <field name="charge_type">fixed</field>
+        <field name="charge_fixed_amount">2000</field>
+    </record>
+
+</odoo>

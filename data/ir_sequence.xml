@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="seq_flt_flight_booking" model="ir.sequence">
+        <field name="name">FLT Flight Booking</field>
+        <field name="code">flt.flight.booking</field>
+        <field name="prefix">FLT/BOOK/</field>
+        <field name="padding">6</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_flt_cancellation_request" model="ir.sequence">
+        <field name="name">FLT Cancellation Request</field>
+        <field name="code">flt.cancellation.request</field>
+        <field name="prefix">FLT/CAN/</field>
+        <field name="padding">6</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_flt_visa" model="ir.sequence">
+        <field name="name">FLT Visa Application</field>
+        <field name="code">flt.visa</field>
+        <field name="prefix">FLT/VISA/</field>
+        <field name="padding">6</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+</odoo>

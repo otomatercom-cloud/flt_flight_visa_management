@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_flt_root" name="Flight &amp; Visa" sequence="60"
+              groups="flt_flight_visa_management.group_flt_user"/>
+
+    <menuitem id="menu_flt_dashboard" name="Dashboard" parent="menu_flt_root"
+              action="action_flt_dashboard" sequence="10"/>
+
+    <menuitem id="menu_flt_flights" name="Flights" parent="menu_flt_root" sequence="20"/>
+    <menuitem id="menu_flt_flight_booking" name="Bookings" parent="menu_flt_flights"
+              action="action_flt_flight_booking" sequence="10"/>
+    <menuitem id="menu_flt_flight_segment" name="Segments" parent="menu_flt_flights"
+              action="action_flt_flight_segment" sequence="20"
+              groups="flt_flight_visa_management.group_flt_manager"/>
+    <menuitem id="menu_flt_airline" name="Airlines" parent="menu_flt_flights"
+              action="action_flt_airline" sequence="30"/>
+    <menuitem id="menu_flt_airport" name="Airports" parent="menu_flt_flights"
+              action="action_flt_airport" sequence="40"/>
+
+    <menuitem id="menu_flt_visa_root" name="Visa" parent="menu_flt_root" sequence="30"/>
+    <menuitem id="menu_flt_visa" name="Visas" parent="menu_flt_visa_root"
+              action="action_flt_visa" sequence="10"/>
+    <menuitem id="menu_flt_visa_expiring" name="Expiring Visas" parent="menu_flt_visa_root"
+              action="action_flt_visa_expiring" sequence="20"/>
+
+    <menuitem id="menu_flt_passport" name="Passports" parent="menu_flt_root"
+              action="action_flt_passport" sequence="40"/>
+
+    <menuitem id="menu_flt_document" name="Documents" parent="menu_flt_root"
+              action="action_flt_document" sequence="50"/>
+
+    <menuitem id="menu_flt_cancellation_root" name="Cancellation" parent="menu_flt_root" sequence="60"/>
+    <menuitem id="menu_flt_cancellation_request" name="Requests" parent="menu_flt_cancellation_root"
+              action="action_flt_cancellation_request" sequence="10"/>
+    <menuitem id="menu_flt_cancellation_policy" name="Policies" parent="menu_flt_cancellation_root"
+              action="action_flt_cancellation_policy" sequence="20"
+              groups="flt_flight_visa_management.group_flt_manager"/>
+    <menuitem id="menu_flt_refunds" name="Refunds" parent="menu_flt_cancellation_root"
+              action="action_flt_refunds" sequence="30"/>
+
+    <menuitem id="menu_flt_notification" name="Notifications" parent="menu_flt_root"
+              action="action_flt_notification" sequence="70"/>
+
+    <menuitem id="menu_flt_reports_root" name="Reports" parent="menu_flt_root" sequence="80"
+              groups="flt_flight_visa_management.group_flt_manager"/>
+    <menuitem id="menu_flt_reports_bookings" name="Flight Bookings" parent="menu_flt_reports_root"
+              action="action_flt_flight_booking" sequence="10"/>
+    <menuitem id="menu_flt_reports_cancelled" name="Cancelled Flights" parent="menu_flt_reports_root"
+              action="action_flt_flight_booking_cancelled" sequence="20"/>
+    <menuitem id="menu_flt_reports_cancellation_requests" name="Cancellation Requests" parent="menu_flt_reports_root"
+              action="action_flt_cancellation_request" sequence="30"/>
+    <menuitem id="menu_flt_reports_refunds" name="Refunds" parent="menu_flt_reports_root"
+              action="action_flt_refunds" sequence="40"/>
+    <menuitem id="menu_flt_reports_visa_expiry" name="Visa Expiry" parent="menu_flt_reports_root"
+              action="action_flt_visa_expiring" sequence="50"/>
+    <menuitem id="menu_flt_reports_passport_expiry" name="Passport Expiry" parent="menu_flt_reports_root"
+              action="action_flt_passport" sequence="60"/>
+
+    <menuitem id="menu_flt_configuration_root" name="Configuration" parent="menu_flt_root" sequence="90"
+              groups="flt_flight_visa_management.group_flt_administrator"/>
+    <menuitem id="menu_flt_configuration_settings" name="Settings" parent="menu_flt_configuration_root"
+              action="base_setup.action_general_configuration" sequence="10"/>
+
+</odoo>

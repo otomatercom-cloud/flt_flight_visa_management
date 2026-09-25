@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="mail_template_flight_cancellation" model="mail.template">
+        <field name="name">FLT: Flight Cancellation</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+                <p>Please contact our support team regarding rebooking or refund options.</p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="mail_template_flight_change" model="mail.template">
+        <field name="name">FLT: Flight Change / Delay</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="mail_template_visa_expiry" model="mail.template">
+        <field name="name">FLT: Visa Expiry Reminder</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+                <p>Please arrange renewal in good time.</p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="mail_template_passport_expiry" model="mail.template">
+        <field name="name">FLT: Passport Expiry Reminder</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+                <p>Please arrange renewal in good time.</p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="mail_template_document_required" model="mail.template">
+        <field name="name">FLT: Document Required</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="mail_template_cancellation_update" model="mail.template">
+        <field name="name">FLT: Cancellation Request Update</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="mail_template_refund_processed" model="mail.template">
+        <field name="name">FLT: Refund Processed</field>
+        <field name="model_id" ref="model_flt_notification"/>
+        <field name="subject">{{ object.title }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div style="margin:0;padding:0;font-family:Arial,sans-serif;">
+                <p>Dear <t t-out="object.partner_id.name"/>,</p>
+                <p><t t-out="object.message"/></p>
+            </div>
+        </field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+</odoo>

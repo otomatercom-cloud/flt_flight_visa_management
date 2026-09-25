@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_flt_notification_list" model="ir.ui.view">
+        <field name="name">flt.notification.list</field>
+        <field name="model">flt.notification</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="is_read == True">
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="category"/>
+                <field name="title"/>
+                <field name="delivery_status"/>
+                <field name="is_read"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_flt_notification" model="ir.actions.act_window">
+        <field name="name">Notifications</field>
+        <field name="res_model">flt.notification</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

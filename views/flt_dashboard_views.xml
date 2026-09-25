@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_flt_dashboard_form" model="ir.ui.view">
+        <field name="name">flt.dashboard.form</field>
+        <field name="model">flt.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Flight &amp; Visa Dashboard">
+                <sheet>
+                    <div class="o_flt_dashboard" style="display:flex;flex-wrap:wrap;gap:16px;">
+                        <button name="action_open_upcoming_flights" type="object" class="oe_stat_button" icon="fa-plane">
+                            <field name="upcoming_flights" widget="statinfo" string="Upcoming Flights"/>
+                        </button>
+                        <button name="action_open_upcoming_flights" type="object" class="oe_stat_button" icon="fa-calendar">
+                            <field name="today_flights" widget="statinfo" string="Today's Flights"/>
+                        </button>
+                        <button name="action_open_cancelled_flights" type="object" class="oe_stat_button" icon="fa-ban">
+                            <field name="cancelled_flights" widget="statinfo" string="Cancelled Flights"/>
+                        </button>
+                        <button name="action_open_pending_cancellations" type="object" class="oe_stat_button" icon="fa-hourglass-half">
+                            <field name="cancellation_requests_pending" widget="statinfo" string="Cancellation Requests"/>
+                        </button>
+                        <button name="action_open_pending_refunds" type="object" class="oe_stat_button" icon="fa-money">
+                            <field name="pending_refunds" widget="statinfo" string="Pending Refunds"/>
+                        </button>
+                        <button name="action_open_expiring_visas" type="object" class="oe_stat_button" icon="fa-globe">
+                            <field name="visas_expiring_30" widget="statinfo" string="Visas Expiring 30d"/>
+                        </button>
+                        <button name="action_open_expiring_visas" type="object" class="oe_stat_button" icon="fa-globe">
+                            <field name="visas_expiring_90" widget="statinfo" string="Visas Expiring 90d"/>
+                        </button>
+                        <button name="action_open_expiring_passports" type="object" class="oe_stat_button" icon="fa-id-card">
+                            <field name="passports_expiring" widget="statinfo" string="Passports Expiring"/>
+                        </button>
+                        <button name="action_open_pending_documents" type="object" class="oe_stat_button" icon="fa-file-text">
+                            <field name="pending_documents" widget="statinfo" string="Pending Documents"/>
+                        </button>
+                        <button name="action_open_upcoming_flights" type="object" class="oe_stat_button" icon="fa-refresh">
+                            <field name="rebooking_required" widget="statinfo" string="Rebooking Required"/>
+                        </button>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_flt_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard</field>
+        <field name="res_model">flt.dashboard</field>
+        <field name="view_mode">form</field>
+    </record>
+
+</odoo>

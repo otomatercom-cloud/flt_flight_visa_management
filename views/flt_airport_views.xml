@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_flt_airport_list" model="ir.ui.view">
+        <field name="name">flt.airport.list</field>
+        <field name="model">flt.airport</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="city"/>
+                <field name="country_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_flt_airport_form" model="ir.ui.view">
+        <field name="name">flt.airport.form</field>
+        <field name="model">flt.airport</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="city"/>
+                        <field name="country_id"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_flt_airport" model="ir.actions.act_window">
+        <field name="name">Airports</field>
+        <field name="res_model">flt.airport</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_flt_flight_booking_list" model="ir.ui.view">
+        <field name="name">flt.flight.booking.list</field>
+        <field name="model">flt.flight.booking</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="status in ('cancelled','airline_cancelled')" decoration-muted="status == 'completed'">
+                <field name="name"/>
+                <field name="pnr"/>
+                <field name="partner_id"/>
+                <field name="passenger_name"/>
+                <field name="booking_date"/>
+                <field name="ticket_class"/>
+                <field name="status" widget="badge"
+                       decoration-success="status in ('confirmed','ticketed','checked_in','completed')"
+                       decoration-danger="status in ('cancelled','airline_cancelled')"
+                       decoration-warning="status == 'cancellation_requested'"/>
+                <field name="payment_status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_flt_flight_booking_form" model="ir.ui.view">
+        <field name="name">flt.flight.booking.form</field>
+        <field name="model">flt.flight.booking</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="draft,reserved,confirmed,ticketed,checked_in,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_cancellation_requests" type="object"
+                                class="oe_stat_button" icon="fa-ban"
+                                invisible="cancellation_request_count == 0">
+                            <field name="cancellation_request_count" widget="statinfo" string="Cancellations"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="pnr"/>
+                            <field name="booking_date"/>
+                            <field name="payment_status"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="passenger_name"/>
+                            <field name="passenger_passport_id"/>
+                            <field name="passenger_contact"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="ticket_number"/>
+                            <field name="ticket_class"/>
+                            <field name="baggage_allowance"/>
+                        </group>
+                        <group>
+                            <field name="ticket_amount"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Segments">
+                            <field name="segment_ids"/>
+                        </page>
+                        <page string="Ticket Documents">
+                            <field name="ticket_document_ids" widget="many2many_binary"/>
+                        </page>
+                        <page string="Airline Cancellation" invisible="status != 'airline_cancelled'">
+                            <group>
+                                <field name="airline_cancellation_reason"/>
+                                <field name="airline_cancellation_action"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_flt_flight_booking_search" model="ir.ui.view">
+        <field name="name">flt.flight.booking.search</field>
+        <field name="model">flt.flight.booking</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="pnr"/>
+                <field name="partner_id"/>
+                <filter name="today" string="Today's Flights"
+                        domain="[('segment_ids.departure_datetime','&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')),
+                                 ('segment_ids.departure_datetime','&lt;=', context_today().strftime('%Y-%m-%d 23:59:59'))]"/>
+                <filter name="upcoming" string="Upcoming"
+                        domain="[('status','not in', ('cancelled','airline_cancelled','completed')),
+                                 ('segment_ids.departure_datetime','&gt;=', context_today().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <filter name="cancelled" string="Cancelled" domain="[('status','in',('cancelled','airline_cancelled'))]"/>
+                <separator/>
+                <group>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_customer" string="Customer" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_flt_flight_booking" model="ir.actions.act_window">
+        <field name="name">Bookings</field>
+        <field name="res_model">flt.flight.booking</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_flt_flight_booking_cancelled" model="ir.actions.act_window">
+        <field name="name">Cancelled Flights</field>
+        <field name="res_model">flt.flight.booking</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="domain">[('status','in',('cancelled','airline_cancelled'))]</field>
+    </record>
+
+</odoo>

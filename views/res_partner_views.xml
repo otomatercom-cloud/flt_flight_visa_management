@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_partner_form_flt_inherit" model="ir.ui.view">
+        <field name="name">res.partner.form.flt.inherit</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                <button name="%(action_flt_passport)d" type="action"
+                        class="oe_stat_button" icon="fa-id-card"
+                        context="{'search_default_partner_id': id, 'default_partner_id': id}"
+                        invisible="flt_passport_count == 0">
+                    <field name="flt_passport_count" widget="statinfo" string="Passports"/>
+                </button>
+                <button name="%(action_flt_visa)d" type="action"
+                        class="oe_stat_button" icon="fa-globe"
+                        context="{'search_default_partner_id': id, 'default_partner_id': id}"
+                        invisible="flt_visa_count == 0">
+                    <field name="flt_visa_count" widget="statinfo" string="Visas"/>
+                </button>
+                <button name="%(action_flt_flight_booking)d" type="action"
+                        class="oe_stat_button" icon="fa-plane"
+                        context="{'search_default_partner_id': id, 'default_partner_id': id}"
+                        invisible="flt_booking_count == 0">
+                    <field name="flt_booking_count" widget="statinfo" string="Bookings"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Travel Information" name="flt_travel_info">
+                    <group>
+                        <field name="flt_nationality_id"/>
+                        <field name="flt_emergency_contact_name"/>
+                        <field name="flt_emergency_contact_phone"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

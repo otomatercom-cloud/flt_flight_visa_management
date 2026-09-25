@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_flt" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.flt</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Flight &amp; Visa Management" string="Flight &amp; Visa Management" name="flt_flight_visa_management">
+                    <block title="Visa" id="flt_visa_settings">
+                        <setting string="Visa Types" help="Comma-separated list shown in the Visa Type dropdown">
+                            <field name="flt_visa_types"/>
+                        </setting>
+                        <setting string="Visa Reminder Days" help="Comma-separated days-before-expiry to send a reminder">
+                            <field name="flt_visa_reminder_days"/>
+                        </setting>
+                    </block>
+                    <block title="Passport" id="flt_passport_settings">
+                        <setting string="Passport Reminder Days" help="Comma-separated days-before-expiry to send a reminder">
+                            <field name="flt_passport_reminder_days"/>
+                        </setting>
+                        <setting string="Expiring Soon Threshold" help="Days before expiry a passport is flagged Expiring Soon">
+                            <field name="flt_passport_expiring_soon_days"/>
+                        </setting>
+                    </block>
+                    <block title="Cancellation" id="flt_cancellation_settings">
+                        <setting string="Auto-cancel on Approval" help="Default for new Cancellation Policy records">
+                            <field name="flt_default_auto_cancel_on_approval"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

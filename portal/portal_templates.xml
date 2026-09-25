@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============ /my home page cards ============ -->
+    <template id="portal_my_home_flt" inherit_id="portal.portal_my_home" customize_show="True">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Travel Dashboard</t>
+                <t t-set="url" t-value="'/my/travel'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Flights</t>
+                <t t-set="url" t-value="'/my/flights'"/>
+                <t t-set="count" t-value="flt_booking_count"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Visas</t>
+                <t t-set="url" t-value="'/my/visas'"/>
+                <t t-set="count" t-value="flt_visa_count"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Passports</t>
+                <t t-set="url" t-value="'/my/passports'"/>
+                <t t-set="count" t-value="flt_passport_count"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Documents</t>
+                <t t-set="url" t-value="'/my/documents'"/>
+                <t t-set="count" t-value="flt_document_count"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Cancellation Requests</t>
+                <t t-set="url" t-value="'/my/flights'"/>
+                <t t-set="count" t-value="flt_cancellation_count"/>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- ============ Dashboard ============ -->
+    <template id="portal_flt_dashboard" name="My Travel Dashboard">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container o_portal_my_home">
+                <h3>My Travel Dashboard</h3>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h5>Upcoming Flights</h5>
+                        <t t-if="not upcoming_bookings">
+                            <p class="text-muted">No upcoming flights.</p>
+                        </t>
+                        <ul class="list-group mb-4">
+                            <li t-foreach="upcoming_bookings" t-as="booking" class="list-group-item d-flex justify-content-between">
+                                <a t-attf-href="/my/flights/#{booking.id}">
+                                    <t t-esc="booking.name"/> — <t t-esc="booking.passenger_name"/>
+                                </a>
+                                <span class="badge badge-info" t-esc="dict(booking._fields['status'].selection).get(booking.status)"/>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Visa Status</h5>
+                        <ul class="list-group mb-4">
+                            <li t-foreach="visas" t-as="visa" class="list-group-item d-flex justify-content-between">
+                                <a t-attf-href="/my/visas/#{visa.id}">
+                                    <t t-esc="visa.country_id.name"/> (<t t-esc="visa.visa_type"/>)
+                                </a>
+                                <span t-esc="visa.expiry_date"/>
+                            </li>
+                        </ul>
+                        <h5>Passport Status</h5>
+                        <ul class="list-group mb-4">
+                            <li t-foreach="passports" t-as="passport" class="list-group-item d-flex justify-content-between">
+                                <span t-esc="passport.passport_number"/>
+                                <span t-esc="passport.expiry_date"/>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <h5>Notifications</h5>
+                <ul class="list-group mb-4">
+                    <li t-foreach="notifications" t-as="notif" class="list-group-item">
+                        <strong t-esc="notif.title"/><br/>
+                        <span t-esc="notif.message"/>
+                    </li>
+                </ul>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============ Flights list ============ -->
+    <template id="portal_flt_flight_list" name="My Flights">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <t t-set="searchbar_inputs" t-value="{}"/>
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">My Flights</t>
+            </t>
+            <div class="container">
+                <t t-if="not bookings">
+                    <p class="text-muted">No flight bookings found.</p>
+                </t>
+                <table t-if="bookings" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Booking Ref</th>
+                            <th>Passenger</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="bookings" t-as="booking">
+                            <td><a t-attf-href="/my/flights/#{booking.id}" t-esc="booking.name"/></td>
+                            <td t-esc="booking.passenger_name"/>
+                            <td t-esc="booking.booking_date"/>
+                            <td t-esc="dict(booking._fields['status'].selection).get(booking.status)"/>
+                            <td t-esc="dict(booking._fields['payment_status'].selection).get(booking.payment_status)"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============ Flight detail ============ -->
+    <template id="portal_flt_flight_detail" name="Flight Detail">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container">
+                <h3>Booking <t t-esc="booking.name"/></h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>PNR:</strong> <t t-esc="booking.pnr"/></p>
+                        <p><strong>Status:</strong> <t t-esc="dict(booking._fields['status'].selection).get(booking.status)"/></p>
+                        <p><strong>Payment Status:</strong> <t t-esc="dict(booking._fields['payment_status'].selection).get(booking.payment_status)"/></p>
+                        <p><strong>Passenger:</strong> <t t-esc="booking.passenger_name"/></p>
+                        <p><strong>Passport:</strong> <t t-esc="booking.passenger_passport_id.passport_number"/></p>
+                        <p><strong>Ticket Class:</strong> <t t-esc="booking.ticket_class"/></p>
+                        <p><strong>Baggage:</strong> <t t-esc="booking.baggage_allowance"/></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Segments</h5>
+                        <ul class="list-group">
+                            <li t-foreach="booking.segment_ids" t-as="seg" class="list-group-item">
+                                <t t-esc="seg.airline_id.name"/> <t t-esc="seg.flight_number"/>:
+                                <t t-esc="seg.departure_airport_id.display_name"/> → <t t-esc="seg.arrival_airport_id.display_name"/>
+                                (<t t-esc="seg.departure_datetime"/>)
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div t-if="cancellable" class="mt-4 card">
+                    <div class="card-body">
+                        <h5 class="card-title">Request Cancellation</h5>
+                        <p>Ticket Amount: <t t-esc="quote['charge'] and booking.ticket_amount"/> <t t-esc="booking.currency_id.symbol"/></p>
+                        <p>Cancellation Charge: <span t-esc="quote['charge']"/> <t t-esc="booking.currency_id.symbol"/></p>
+                        <p>Estimated Refund: <span t-esc="quote['refund']"/> <t t-esc="booking.currency_id.symbol"/></p>
+                        <form t-attf-action="/my/flights/#{booking.id}/cancel" method="post">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <div class="form-group">
+                                <label>Reason</label>
+                                <textarea name="reason" class="form-control" required="required"/>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="confirm" class="form-check-input" required="required"/>
+                                <label class="form-check-label">
+                                    I understand the cancellation charges and refund conditions.
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-danger">Request Cancellation</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============ Visas ============ -->
+    <template id="portal_flt_visa_list" name="My Visas">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container">
+                <h3>My Visas</h3>
+                <table class="table table-hover">
+                    <thead><tr><th>Application No.</th><th>Country</th><th>Type</th><th>Expiry</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="visas" t-as="visa">
+                            <td><a t-attf-href="/my/visas/#{visa.id}" t-esc="visa.name"/></td>
+                            <td t-esc="visa.country_id.name"/>
+                            <td t-esc="visa.visa_type"/>
+                            <td t-esc="visa.expiry_date"/>
+                            <td t-esc="dict(visa._fields['status'].selection).get(visa.status)"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_flt_visa_detail" name="Visa Detail">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container">
+                <h3>Visa <t t-esc="visa.name"/></h3>
+                <p><strong>Country:</strong> <t t-esc="visa.country_id.name"/></p>
+                <p><strong>Type:</strong> <t t-esc="visa.visa_type"/></p>
+                <p><strong>Visa Number:</strong> <t t-esc="visa.visa_number"/></p>
+                <p><strong>Issue Date:</strong> <t t-esc="visa.issue_date"/></p>
+                <p><strong>Expiry Date:</strong> <t t-esc="visa.expiry_date"/></p>
+                <p><strong>Entry Type:</strong> <t t-esc="visa.entry_type"/></p>
+                <p><strong>Status:</strong> <t t-esc="dict(visa._fields['status'].selection).get(visa.status)"/></p>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============ Passports ============ -->
+    <template id="portal_flt_passport_list" name="My Passports">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container">
+                <h3>My Passports</h3>
+                <table class="table table-hover">
+                    <thead><tr><th>Passport No.</th><th>Full Name</th><th>Expiry</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="passports" t-as="passport">
+                            <td t-esc="passport.passport_number"/>
+                            <td t-esc="passport.full_name"/>
+                            <td t-esc="passport.expiry_date"/>
+                            <td t-esc="dict(passport._fields['status'].selection).get(passport.status)"/>
+                        </tr>
+                    </tbody>
+                </table>
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============ Documents ============ -->
+    <template id="portal_flt_document_list" name="My Documents">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container">
+                <h3>My Documents</h3>
+                <form action="/my/documents/upload" method="post" enctype="multipart/form-data" class="mb-4 card">
+                    <div class="card-body">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div class="form-group">
+                            <label>Document Name</label>
+                            <input type="text" name="name" class="form-control"/>
+                        </div>
+                        <div class="form-group">
+                            <label>Document Type</label>
+                            <select name="document_type" class="form-control">
+                                <option value="passport">Passport</option>
+                                <option value="visa">Visa</option>
+                                <option value="flight_ticket">Flight Ticket</option>
+                                <option value="boarding_pass">Boarding Pass</option>
+                                <option value="national_id">National ID</option>
+                                <option value="insurance">Insurance</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>File</label>
+                            <input type="file" name="upload" class="form-control-file" required="required"/>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+                <table class="table table-hover">
+                    <thead><tr><th>Name</th><th>Type</th><th>Uploaded</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="documents" t-as="doc">
+                            <td t-esc="doc.name"/>
+                            <td t-esc="doc.document_type"/>
+                            <td t-esc="doc.upload_date"/>
+                            <td t-esc="dict(doc._fields['status'].selection).get(doc.status)"/>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============ Notifications ============ -->
+    <template id="portal_flt_notification_list" name="My Notifications">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="False"/>
+            <div class="container">
+                <h3>Notifications</h3>
+                <ul class="list-group">
+                    <li t-foreach="notifications" t-as="notif" class="list-group-item">
+                        <strong t-esc="notif.title"/> — <small t-esc="notif.date"/><br/>
+                        <span t-esc="notif.message"/>
+                    </li>
+                </ul>
+            </div>
+        </t>
+    </template>
+
+</odoo>

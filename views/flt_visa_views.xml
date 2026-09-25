@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_flt_visa_list" model="ir.ui.view">
+        <field name="name">flt.visa.list</field>
+        <field name="model">flt.visa</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="status == 'expired'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="country_id"/>
+                <field name="visa_type"/>
+                <field name="expiry_date"/>
+                <field name="status" widget="badge"
+                       decoration-success="status in ('active','approved')"
+                       decoration-danger="status in ('expired','rejected','cancelled')"
+                       decoration-info="status in ('draft','submitted','processing')"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_flt_visa_form" model="ir.ui.view">
+        <field name="name">flt.visa.form</field>
+        <field name="model">flt.visa</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="draft,submitted,processing,approved,active"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="passport_id"/>
+                            <field name="country_id"/>
+                            <field name="visa_type"/>
+                            <field name="visa_number"/>
+                        </group>
+                        <group>
+                            <field name="issue_date"/>
+                            <field name="expiry_date"/>
+                            <field name="renewal_date"/>
+                            <field name="entry_type"/>
+                            <field name="number_of_entries"/>
+                        </group>
+                    </group>
+                    <group string="Documents">
+                        <field name="attachment_ids" widget="many2many_binary"/>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_flt_visa_search" model="ir.ui.view">
+        <field name="name">flt.visa.search</field>
+        <field name="model">flt.visa</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="country_id"/>
+                <filter name="active_visas" string="Active" domain="[('status','=','active')]"/>
+                <filter name="expiring_30" string="Expiring in 30 Days"
+                        domain="[('status','=','active'), ('expiry_date','&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_country" string="Country" context="{'group_by': 'country_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_flt_visa" model="ir.actions.act_window">
+        <field name="name">Visas</field>
+        <field name="res_model">flt.visa</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_flt_visa_expiring" model="ir.actions.act_window">
+        <field name="name">Expiring Visas</field>
+        <field name="res_model">flt.visa</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('status','=','active'), ('expiry_date','&lt;=', (context_today() + relativedelta(days=90)).strftime('%Y-%m-%d'))]</field>
+    </record>
+
+</odoo>
