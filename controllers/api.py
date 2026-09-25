@@ -20,7 +20,7 @@ Design rules (see README's "Next.js API" section):
 import json
 import logging
 
-from odoo import http
+from odoo import SUPERUSER_ID, http
 from odoo.exceptions import AccessDenied, MissingError, UserError
 from odoo.http import request
 
@@ -247,8 +247,19 @@ class FltApiController(http.Controller):
         if len(password) < 8:
             return _json_error("Password must be at least 8 characters.", status=400, code="weak_password")
 
-        Users = request.env["res.users"].sudo()
-        Partner = request.env["res.partner"].sudo()
+        # auth="none" means request.env.user is a genuinely EMPTY recordset
+        # here, not even the public user — .sudo() alone doesn't fix that,
+        # it only flips env.su and leaves env.user untouched. Odoo core's
+        # own mail-module res.users.create() override posts a welcome
+        # chatter message and calls self.env.user._is_public(), which
+        # does .ensure_one() and crashes on that empty recordset. Rebind
+        # the whole env to a real user (superuser) up front so every
+        # downstream env.user access in Odoo's own create() chain resolves
+        # to an actual singleton, not just this controller's own sudo()'d
+        # model access.
+        env = request.env(user=SUPERUSER_ID)
+        Users = env["res.users"].sudo()
+        Partner = env["res.partner"].sudo()
 
         if Users.search_count([("login", "=", login)]):
             return _json_error("An account with this email already exists.", status=409, code="already_exists")
@@ -262,17 +273,16 @@ class FltApiController(http.Controller):
         else:
             partner.write({"name": name, "phone": phone or partner.phone})
 
-        portal_group = request.env.ref("base.group_portal")
-        # This route is auth="none" — there is no logged-in user, so
-        # request.env.company (which derives from the request's session/
-        # user context) resolves to an EMPTY recordset here, not a real
-        # company; company.id on it silently evaluates to False rather
-        # than raising. res.users.company_id is NOT NULL at the SQL level
-        # on this database, so create() needs a real company id — fetched
-        # directly, independent of any request/session context.
-        company = request.env["res.company"].sudo().search([], limit=1, order="id asc")
+        portal_group = env.ref("base.group_portal")
+        # request.env.company derives from the request's session/user
+        # context, which is empty here (see the env rebind above) — it
+        # would silently resolve to a false/empty company rather than
+        # raising. res.users.company_id is NOT NULL at the SQL level on
+        # this database, so create() needs a real company id, fetched
+        # directly rather than via any request/session-derived context.
+        company = env["res.company"].sudo().search([], limit=1, order="id asc")
         if not company:
-            company = request.env.ref("base.main_company")
+            company = env.ref("base.main_company")
         try:
             # no_reset_password=True: without it, res.users.create() with
             # both 'email' and 'password' set silently fires auth_signup's
