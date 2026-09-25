@@ -22,7 +22,7 @@ import logging
 
 from odoo import SUPERUSER_ID, http
 from odoo.exceptions import AccessDenied, MissingError, UserError
-from odoo.http import request
+from odoo.http import request, root
 
 _logger = logging.getLogger(__name__)
 
@@ -320,6 +320,18 @@ class FltApiController(http.Controller):
             request.session.authenticate(
                 request.env, {"type": "password", "login": login, "password": password}
             )
+            # Odoo 19: a successful authenticate() sets should_rotate=True,
+            # but the actual sid rotation only happens AFTER the controller
+            # returns (post_dispatch -> _save_session, per odoo/http.py) —
+            # request.session.sid at this point is still the OLD, pre-
+            # rotation value. If we serialize it into our JSON body now, the
+            # sid we hand back gets silently replaced a moment later inside
+            # Odoo's own response pipeline, so every subsequent request
+            # using "our" session_id 303s to /web/login as if it were never
+            # authenticated. Force the rotation ourselves, synchronously,
+            # before reading sid, so what we return is the real final value.
+            if request.session.should_rotate:
+                root.session_store.rotate(request.session, request.env)
             uid = request.session.uid
         except AccessDenied:
             uid = False
@@ -355,6 +367,11 @@ class FltApiController(http.Controller):
             request.session.authenticate(
                 request.env, {"type": "password", "login": login, "password": password}
             )
+            # See the identical note in auth_signup: rotate the sid
+            # ourselves, synchronously, before reading it — otherwise we
+            # hand back a session_id Odoo is about to silently replace.
+            if request.session.should_rotate:
+                root.session_store.rotate(request.session, request.env)
             uid = request.session.uid
         except AccessDenied:
             uid = False
