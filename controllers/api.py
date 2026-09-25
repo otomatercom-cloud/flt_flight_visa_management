@@ -263,11 +263,16 @@ class FltApiController(http.Controller):
             partner.write({"name": name, "phone": phone or partner.phone})
 
         portal_group = request.env.ref("base.group_portal")
-        # This route is auth="none" (no logged-in user), so there's no
-        # session company to default company_id from — on a multi-company
-        # database res.users.company_id is NOT NULL at the SQL level and
-        # create() fails without it being set explicitly.
-        company = request.env.company
+        # This route is auth="none" — there is no logged-in user, so
+        # request.env.company (which derives from the request's session/
+        # user context) resolves to an EMPTY recordset here, not a real
+        # company; company.id on it silently evaluates to False rather
+        # than raising. res.users.company_id is NOT NULL at the SQL level
+        # on this database, so create() needs a real company id — fetched
+        # directly, independent of any request/session context.
+        company = request.env["res.company"].sudo().search([], limit=1, order="id asc")
+        if not company:
+            company = request.env.ref("base.main_company")
         try:
             # no_reset_password=True: without it, res.users.create() with
             # both 'email' and 'password' set silently fires auth_signup's
