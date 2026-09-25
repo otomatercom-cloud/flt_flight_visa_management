@@ -17,11 +17,12 @@ Design rules (see README's "Next.js API" section):
   read straight off the ORM (which is what already enforces the real
   business rules in flt_cancellation_request.py etc.).
 """
+import base64
 import json
 import logging
 
-from odoo import SUPERUSER_ID, http
-from odoo.exceptions import AccessDenied, MissingError, UserError
+from odoo import SUPERUSER_ID, fields, http
+from odoo.exceptions import AccessDenied, MissingError, UserError, ValidationError
 from odoo.http import request, root
 
 _logger = logging.getLogger(__name__)
@@ -165,6 +166,7 @@ class FltApiController(http.Controller):
                 "entry_type": visa.entry_type,
                 "number_of_entries": visa.number_of_entries,
                 "passport_number": visa.passport_id.passport_number or None,
+                "document_count": len(visa.attachment_ids),
             })
         return data
 
@@ -174,10 +176,15 @@ class FltApiController(http.Controller):
             "id": passport.id,
             "passport_number": passport.passport_number,
             "full_name": passport.full_name,
+            "date_of_birth": passport.date_of_birth and passport.date_of_birth.isoformat(),
             "nationality": passport.nationality_id.name or None,
+            "nationality_code": passport.nationality_id.code or None,
             "issue_date": passport.issue_date and passport.issue_date.isoformat(),
             "expiry_date": passport.expiry_date and passport.expiry_date.isoformat(),
+            "place_of_issue": passport.place_of_issue or None,
+            "notes": passport.notes or None,
             "status": passport.status,
+            "document_count": len(passport.attachment_ids),
         }
 
     @staticmethod
@@ -232,6 +239,27 @@ class FltApiController(http.Controller):
         if not record or record.partner_id.id != partner.id:
             raise MissingError("Record not found.")
         return record
+
+    @staticmethod
+    def _resolve_country(code):
+        """Look up a res.country by ISO-2 code (what a <select> of countries
+        sends). Returns an empty recordset (falsy) rather than raising, so
+        callers decide whether the field is required."""
+        if not code:
+            return request.env["res.country"]
+        return request.env["res.country"].sudo().search([("code", "=", code.strip().upper())], limit=1)
+
+    @staticmethod
+    def _parse_date(value, field_label):
+        """Parses a 'YYYY-MM-DD' string (what an <input type=date> sends)
+        into an odoo Date, raising a clean 400 rather than a 500 on garbage
+        input. Returns None for an empty/absent value."""
+        if not value:
+            return None
+        try:
+            return fields.Date.to_date(value)
+        except Exception:
+            raise ValidationError(f"{field_label} must be a valid date (YYYY-MM-DD).")
 
     # ============================== AUTH ==============================
     @flt_api_route(route="/api/flt/auth/signup", type="http", auth="none", methods=["POST"], csrf=False)
@@ -527,12 +555,192 @@ class FltApiController(http.Controller):
         visa = self._get_owned("flt.visa", visa_id)
         return request.make_json_response(self._serialize_visa(visa, detail=True))
 
+    @flt_api_route(route="/api/flt/visas", type="http", auth="user", methods=["POST"], csrf=False)
+    def visa_create(self, **kw):
+        """Self-service visa application. Always lands in Odoo's own
+        'draft' status — the same starting point as one a staff member
+        types in by hand — so a staff member must still review/advance it;
+        this endpoint only gets it into the system, it never approves it."""
+        partner = request.env.user.partner_id
+        body = _require_json_body()
+
+        passport_id = body.get("passport_id")
+        country_code = (body.get("country_code") or "").strip()
+        visa_type = (body.get("visa_type") or "").strip()
+        if not passport_id or not country_code or not visa_type:
+            return _json_error("Passport, country and visa type are required.", status=400, code="invalid_input")
+
+        try:
+            passport = self._get_owned("flt.passport", passport_id)
+        except MissingError:
+            return _json_error("That passport was not found on your account.", status=404, code="not_found")
+
+        country = self._resolve_country(country_code)
+        if not country:
+            return _json_error("Unrecognized country.", status=400, code="invalid_country")
+
+        try:
+            issue_date = self._parse_date(body.get("issue_date"), "Issue date")
+            expiry_date = self._parse_date(body.get("expiry_date"), "Expiry date")
+            renewal_date = self._parse_date(body.get("renewal_date"), "Renewal date")
+        except ValidationError as exc:
+            return _json_error(str(exc), status=400, code="invalid_input")
+
+        entry_type = body.get("entry_type") or "single"
+        if entry_type not in ("single", "double", "multiple"):
+            return _json_error("Invalid entry type.", status=400, code="invalid_input")
+
+        try:
+            number_of_entries = int(body.get("number_of_entries") or 1)
+        except (TypeError, ValueError):
+            return _json_error("Number of entries must be a number.", status=400, code="invalid_input")
+
+        try:
+            visa = request.env["flt.visa"].sudo().create({
+                "partner_id": partner.id,
+                "passport_id": passport.id,
+                "country_id": country.id,
+                "visa_number": (body.get("visa_number") or "").strip() or False,
+                "visa_type": visa_type,
+                "issue_date": issue_date,
+                "expiry_date": expiry_date,
+                "renewal_date": renewal_date,
+                "entry_type": entry_type,
+                "number_of_entries": number_of_entries,
+                "notes": (body.get("notes") or "").strip() or False,
+            })
+        except ValidationError as exc:
+            return _json_error(str(exc), status=400, code="invalid_input")
+        except Exception:
+            _logger.exception("Visa creation failed for partner %s", partner.id)
+            request.env.cr.rollback()
+            return _json_error("Couldn't submit this visa application. Please try again.", status=500, code="server_error")
+
+        return request.make_json_response(self._serialize_visa(visa, detail=True), status=201)
+
+    @flt_api_route(
+        route="/api/flt/visas/<int:visa_id>/documents", type="http", auth="user", methods=["POST"], csrf=False,
+    )
+    def visa_documents_upload(self, visa_id, upload=None, **kw):
+        """Attaches a scanned visa document directly onto flt.visa's own
+        attachment_ids — the same field a staff member fills in the Odoo
+        backend form — not a separate flt.document record."""
+        visa = self._get_owned("flt.visa", visa_id)
+        if not upload:
+            return _json_error("No file provided.", status=400, code="missing_file")
+        file_content = upload.read()
+        if len(file_content) > 15 * 1024 * 1024:
+            return _json_error("File is too large (max 15MB).", status=400, code="file_too_large")
+
+        attachment = request.env["ir.attachment"].sudo().create({
+            "name": upload.filename,
+            "res_model": "flt.visa",
+            "res_id": visa.id,
+            "type": "binary",
+            "datas": base64.b64encode(file_content),
+        })
+        visa.sudo().write({"attachment_ids": [(4, attachment.id)]})
+        return request.make_json_response(self._serialize_visa(visa, detail=True), status=201)
+
     # ============================= PASSPORT =============================
     @flt_api_route(route="/api/flt/passports", type="http", auth="user", methods=["GET"], csrf=False)
     def passports_list(self, **kw):
         partner = request.env.user.partner_id
         passports = request.env["flt.passport"].sudo().search([("partner_id", "=", partner.id)], order="expiry_date")
         return request.make_json_response({"items": [self._serialize_passport(p) for p in passports]})
+
+    @flt_api_route(route="/api/flt/passports", type="http", auth="user", methods=["POST"], csrf=False)
+    def passport_create(self, **kw):
+        """Self-service passport entry. Always lands in Odoo's own 'draft'
+        status (flt.passport's model default) — a staff member must still
+        click Validate in the backend before it counts as Valid, same as a
+        record typed in by hand."""
+        partner = request.env.user.partner_id
+        body = _require_json_body()
+
+        passport_number = (body.get("passport_number") or "").strip()
+        full_name = (body.get("full_name") or "").strip()
+        if not passport_number or not full_name:
+            return _json_error("Passport number and full name are required.", status=400, code="invalid_input")
+
+        try:
+            date_of_birth = self._parse_date(body.get("date_of_birth"), "Date of birth")
+            issue_date = self._parse_date(body.get("issue_date"), "Issue date")
+            expiry_date = self._parse_date(body.get("expiry_date"), "Expiry date")
+        except ValidationError as exc:
+            return _json_error(str(exc), status=400, code="invalid_input")
+        if not issue_date or not expiry_date:
+            return _json_error("Issue date and expiry date are required.", status=400, code="invalid_input")
+
+        nationality = self._resolve_country(body.get("nationality_code"))
+
+        try:
+            passport = request.env["flt.passport"].sudo().create({
+                "partner_id": partner.id,
+                "passport_number": passport_number,
+                "full_name": full_name,
+                "date_of_birth": date_of_birth,
+                "nationality_id": nationality.id if nationality else False,
+                "issue_date": issue_date,
+                "expiry_date": expiry_date,
+                "place_of_issue": (body.get("place_of_issue") or "").strip() or False,
+                "notes": (body.get("notes") or "").strip() or False,
+            })
+        except ValidationError as exc:
+            return _json_error(str(exc), status=400, code="invalid_input")
+        except Exception:
+            # Covers the model's own unique(partner_id, passport_number)
+            # constraint (psycopg2 IntegrityError) as well as anything else
+            # unexpected — never let a raw traceback reach the customer.
+            _logger.exception("Passport creation failed for partner %s", partner.id)
+            request.env.cr.rollback()
+            return _json_error(
+                "Couldn't save this passport — it may already be registered on your account.",
+                status=400, code="duplicate_or_invalid",
+            )
+
+        return request.make_json_response(self._serialize_passport(passport), status=201)
+
+    @flt_api_route(
+        route="/api/flt/passports/<int:passport_id>/documents", type="http", auth="user", methods=["POST"], csrf=False,
+    )
+    def passport_documents_upload(self, passport_id, upload=None, **kw):
+        """Attaches a scanned passport copy directly onto flt.passport's
+        own attachment_ids ('Passport Copies' in the Odoo backend form) —
+        not a separate flt.document record."""
+        passport = self._get_owned("flt.passport", passport_id)
+        if not upload:
+            return _json_error("No file provided.", status=400, code="missing_file")
+        file_content = upload.read()
+        if len(file_content) > 15 * 1024 * 1024:
+            return _json_error("File is too large (max 15MB).", status=400, code="file_too_large")
+
+        attachment = request.env["ir.attachment"].sudo().create({
+            "name": upload.filename,
+            "res_model": "flt.passport",
+            "res_id": passport.id,
+            "type": "binary",
+            "datas": base64.b64encode(file_content),
+        })
+        passport.sudo().write({"attachment_ids": [(4, attachment.id)]})
+        return request.make_json_response(self._serialize_passport(passport), status=201)
+
+    @flt_api_route(route="/api/flt/visa-types", type="http", auth="user", methods=["GET"], csrf=False)
+    def visa_types_list(self, **kw):
+        """Sourced from flt.visa's own _selection_visa_type (configurable
+        via ir.config_parameter) — never hardcoded here, so a portal-
+        submitted visa_type always matches what the model actually accepts."""
+        options = request.env["flt.visa"].sudo()._selection_visa_type()
+        return request.make_json_response({"items": [{"value": v, "label": label} for v, label in options]})
+
+    @flt_api_route(route="/api/flt/countries", type="http", auth="user", methods=["GET"], csrf=False)
+    def countries_list(self, **kw):
+        """Lightweight lookup list for a nationality/country <select> in the
+        frontend. Only what's needed to render options — never more."""
+        countries = request.env["res.country"].sudo().search([], order="name")
+        return request.make_json_response({
+            "items": [{"code": c.code, "name": c.name} for c in countries if c.code]
+        })
 
     # ============================ DOCUMENTS =============================
     @flt_api_route(route="/api/flt/documents", type="http", auth="user", methods=["GET"], csrf=False)
@@ -545,8 +753,6 @@ class FltApiController(http.Controller):
 
     @flt_api_route(route="/api/flt/documents/upload", type="http", auth="user", methods=["POST"], csrf=False)
     def documents_upload(self, name=None, document_type=None, upload=None, **kw):
-        import base64
-
         partner = request.env.user.partner_id
         if not upload:
             return _json_error("No file provided.", status=400, code="missing_file")
