@@ -263,6 +263,11 @@ class FltApiController(http.Controller):
             partner.write({"name": name, "phone": phone or partner.phone})
 
         portal_group = request.env.ref("base.group_portal")
+        # This route is auth="none" (no logged-in user), so there's no
+        # session company to default company_id from — on a multi-company
+        # database res.users.company_id is NOT NULL at the SQL level and
+        # create() fails without it being set explicitly.
+        company = request.env.company
         try:
             # no_reset_password=True: without it, res.users.create() with
             # both 'email' and 'password' set silently fires auth_signup's
@@ -276,6 +281,8 @@ class FltApiController(http.Controller):
                 "password": password,
                 "partner_id": partner.id,
                 "group_ids": [(6, 0, [portal_group.id])],
+                "company_id": company.id,
+                "company_ids": [(6, 0, [company.id])],
             })
         except Exception:
             _logger.exception("Signup failed creating portal user for %s", login)
