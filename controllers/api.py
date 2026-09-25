@@ -306,16 +306,27 @@ class FltApiController(http.Controller):
 
         # Odoo 19: Session.authenticate() takes (env, credential_dict), not
         # (db, login, password) — same fix as auth_login above.
+        #
+        # IMPORTANT: auth_info["uid"] is the *pre*-uid — Session.authenticate()
+        # sets it before deciding whether to actually finalize the session
+        # (odoo/http.py: self.finalize(env) only runs when MFA isn't
+        # required). If finalize() is skipped, request.session.uid is never
+        # set, so the session_id we'd hand back looks fine but every
+        # following request gets redirected to /web/login by Odoo's own
+        # auth="user" check — the account exists but the "auto-login" silently
+        # never happened. request.session.uid (not auth_info["uid"]) is the
+        # only reliable signal that the session actually finalized.
         try:
-            auth_info = request.session.authenticate(
+            request.session.authenticate(
                 request.env, {"type": "password", "login": login, "password": password}
             )
-            uid = auth_info["uid"]
+            uid = request.session.uid
         except AccessDenied:
             uid = False
         if not uid:
-            # Account was created but the immediate sign-in failed for some
-            # environment reason — ask them to log in explicitly instead.
+            # Account was created but the immediate sign-in didn't finalize
+            # (e.g. MFA required, or some other reason) — ask them to log in
+            # explicitly instead.
             return request.make_json_response({"created": True, "session_id": None})
 
         return request.make_json_response({
@@ -337,11 +348,14 @@ class FltApiController(http.Controller):
         # (see addons/web/controllers/home.py's web_login for the real
         # pattern this mirrors). AccessDenied on bad credentials, same as
         # before.
+        # See the identical note in auth_signup: request.session.uid (not
+        # auth_info["uid"], which is only the pre-uid) is the real signal
+        # that the session finalized and is actually usable afterwards.
         try:
-            auth_info = request.session.authenticate(
+            request.session.authenticate(
                 request.env, {"type": "password", "login": login, "password": password}
             )
-            uid = auth_info["uid"]
+            uid = request.session.uid
         except AccessDenied:
             uid = False
         if not uid:
