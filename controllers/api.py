@@ -264,13 +264,18 @@ class FltApiController(http.Controller):
 
         portal_group = request.env.ref("base.group_portal")
         try:
-            user = Users.create({
+            # no_reset_password=True: without it, res.users.create() with
+            # both 'email' and 'password' set silently fires auth_signup's
+            # invite-email flow and leaves the password we just set unusable
+            # until an invite link is clicked — no error, just a broken
+            # login. group_ids (not groups_id) is the Odoo 19 field name.
+            user = Users.with_context(no_reset_password=True).create({
                 "name": name,
                 "login": login,
                 "email": login,
                 "password": password,
                 "partner_id": partner.id,
-                "groups_id": [(6, 0, [portal_group.id])],
+                "group_ids": [(6, 0, [portal_group.id])],
             })
         except Exception:
             _logger.exception("Signup failed creating portal user for %s", login)
