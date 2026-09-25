@@ -18,10 +18,13 @@ Design rules (see README's "Next.js API" section):
   business rules in flt_cancellation_request.py etc.).
 """
 import json
+import logging
 
 from odoo import http
 from odoo.exceptions import AccessDenied, MissingError, UserError
 from odoo.http import request
+
+_logger = logging.getLogger(__name__)
 
 
 def _json_error(message, status=400, code="error"):
@@ -56,6 +59,10 @@ def flt_api_route(**route_kwargs):
             except UserError as e:
                 return _json_error(str(e), status=400, code="user_error")
             except Exception:
+                # Always log the real traceback server-side before returning
+                # the generic message — swallowing it silently (as this did
+                # before) makes production errors undiagnosable from the log.
+                _logger.exception("Unhandled error in FLT API route %s", fn.__name__)
                 request.env.cr.rollback()
                 return _json_error("Something went wrong. Please try again.", status=500, code="server_error")
         wrapped.__name__ = fn.__name__
@@ -266,6 +273,8 @@ class FltApiController(http.Controller):
                 "groups_id": [(6, 0, [portal_group.id])],
             })
         except Exception:
+            _logger.exception("Signup failed creating portal user for %s", login)
+            request.env.cr.rollback()
             return _json_error("Couldn't create this account. Please try again.", status=500, code="server_error")
 
         db = request.db or http.db_monodb()
