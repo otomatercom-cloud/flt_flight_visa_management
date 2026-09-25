@@ -304,8 +304,15 @@ class FltApiController(http.Controller):
             request.env.cr.rollback()
             return _json_error("Couldn't create this account. Please try again.", status=500, code="server_error")
 
-        db = request.db or http.db_monodb()
-        uid = request.session.authenticate(db, login, password)
+        # Odoo 19: Session.authenticate() takes (env, credential_dict), not
+        # (db, login, password) — same fix as auth_login above.
+        try:
+            auth_info = request.session.authenticate(
+                request.env, {"type": "password", "login": login, "password": password}
+            )
+            uid = auth_info["uid"]
+        except AccessDenied:
+            uid = False
         if not uid:
             # Account was created but the immediate sign-in failed for some
             # environment reason — ask them to log in explicitly instead.
@@ -324,9 +331,17 @@ class FltApiController(http.Controller):
         if not login or not password:
             return _json_error("Email and password are required.", status=400, code="invalid_input")
 
-        db = request.db or http.db_monodb()
+        # Odoo 19: Session.authenticate(db, login, password) no longer
+        # exists — it now takes (env, credential_dict), matching the
+        # 'password' auth-method shape res.users.authenticate() expects
+        # (see addons/web/controllers/home.py's web_login for the real
+        # pattern this mirrors). AccessDenied on bad credentials, same as
+        # before.
         try:
-            uid = request.session.authenticate(db, login, password)
+            auth_info = request.session.authenticate(
+                request.env, {"type": "password", "login": login, "password": password}
+            )
+            uid = auth_info["uid"]
         except AccessDenied:
             uid = False
         if not uid:
